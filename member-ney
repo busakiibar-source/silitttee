@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kasir Toko</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"> <!-- Font modern untuk UI -->
+    <style>
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #f4f4f4; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 700px; 
+            margin: auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+        h1, h2 { 
+            color: #2c3e50; 
+            text-align: center; 
+        }
+        input, button { 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        input:focus { 
+            outline: none; 
+            border-color: #3498db; 
+        }
+        button { 
+            background-color: #3498db; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        button:hover { 
+            background-color: #2980b9; 
+        }
+        .item { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #eee; 
+        }
+        .total { 
+            font-weight: bold; 
+            font-size: 1.3em; 
+            text-align: right; 
+            margin-top: 20px; 
+            color: #e74c3c; 
+        }
+        #struk { 
+            margin-top: 20px; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            background: #fafafa; 
+            display: none; 
+            font-family: 'Courier New', monospace; /* Font mirip struk Alfamart */
+            font-size: 12px; 
+        }
+        .struk-line { 
+            margin: 5px 0; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kasir Toko Modern</h1>
+        
+        <!-- Input Nama Toko -->
+        <label for="namaToko">Nama Toko:</label>
+        <input type="text" id="namaToko" placeholder="Masukkan nama toko" value="Toko Saya">
+        
+        <!-- Input Item -->
+        <h2>Tambah Item</h2>
+        <input type="text" id="namaItem" placeholder="Nama item">
+        <input type="number" id="hargaItem" placeholder="Harga (Rp)">
+        <input type="number" id="qtyItem" placeholder="Jumlah">
+        <button onclick="tambahItem()">Tambah Item</button>
+        
+        <!-- Daftar Item -->
+        <h2>Daftar Item</h2>
+        <div id="daftarItem"></div>
+        <div class="total">Total: Rp <span id="total">0</span></div>
+        
+        <!-- Tombol Generate Struk -->
+        <button onclick="generateStruk()">Generate Struk PDF</button>
+        
+        <!-- Preview Struk (untuk debugging) -->
+        <div id="struk">
+            <h3>Preview Struk</h3>
+            <div id="strukContent"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        let items = [];
+        let total = 0;
+
+        function tambahItem() {
+            const nama = document.getElementById('namaItem').value;
+            const harga = parseFloat(document.getElementById('hargaItem').value);
+            const qty = parseInt(document.getElementById('qtyItem').value);
+            
+            if (nama && harga > 0 && qty > 0) {
+                const subtotal = harga * qty;
+                items.push({ nama, harga, qty, subtotal });
+                total += subtotal;
+                updateDaftar();
+                // Reset input
+                document.getElementById('namaItem').value = '';
+                document.getElementById('hargaItem').value = '';
+                document.getElementById('qtyItem').value = '';
+            } else {
+                alert('Masukkan data item yang valid!');
+            }
+        }
+
+        function updateDaftar() {
+            const daftar = document.getElementById('daftarItem');
+            daftar.innerHTML = '';
+            items.forEach((item, index) => {
+                daftar.innerHTML += `<div class="item">${item.nama} - Rp ${item.harga.toLocaleString('id-ID')} x ${item.qty} = Rp ${item.subtotal.toLocaleString('id-ID')}</div>`;
+            });
+            document.getElementById('total').textContent = total.toLocaleString('id-ID');
+        }
+
+        function generateStruk() {
+            if (items.length === 0) {
+                alert('Tambahkan item terlebih dahulu!');
+                return;
+            }
+            
+            const namaToko = document.getElementById('namaToko').value;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Set font monospace untuk struk mirip Alfamart
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(10); // Ukuran kecil seperti struk
+            
+            // Header
+            doc.text(namaToko, 10, 20);
+            doc.text('================================', 10, 25);
+            doc.text('Struk Pembelian', 10, 30);
+            doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 10, 35);
+            doc.text('================================', 10, 40);
+            
+            // Items
+            let y = 45;
+            items.forEach(item => {
+                doc.text(`${item.nama}`, 10, y);
+                doc.text(`Rp ${item.harga.toLocaleString('id-ID')} x ${item.qty}`, 10, y + 5);
+                doc.text(`= Rp ${item.subtotal.toLocaleString('id-ID')}`, 10, y + 10);
+                y += 15;
+            });
+            
+            // Total
+            doc.text('================================', 10, y);
+            doc.setFontSize(12);
+            doc.text(`Total: Rp ${total.toLocaleString('id-ID')}`, 10, y + 10);
+            doc.text('================================', 10, y + 15);
+            
+            // Footer
+            doc.setFontSize(10);
+            doc.text('Terima Kasih!', 10, y + 25);
+            
+            // Download PDF
+            doc.save('struk.pdf');
+            
+            // Preview di halaman (opsional, dengan font monospace)
+            const strukContent = document.getElementById('strukContent');
+            strukContent.innerHTML = `
+                <div class="struk-line">${namaToko}</div>
+                <div class="struk-line">================================</div>
+                <div class="struk-line">Struk Pembelian</div>
+                <div class="struk-line">Tanggal: ${new Date().toLocaleDateString('id-ID')}</div>
+                <div class="struk-line">================================</div>
+                ${items.map(item => `
+                    <div class="struk-line">${item.nama}</div>
+                    <div class="struk-line">Rp ${item.harga.toLocaleString('id-ID')} x ${item.qty}</div>
+                    <div class="struk-line">= Rp ${item.subtotal.toLocaleString('id-ID')}</div>
+                `).join('')}
+                <div class="struk-line">================================</div>
+                <div class="struk-line">Total: Rp ${total.toLocaleString('id-ID')}</div>
+                <div class="struk-line">================================</div>
+                <div class="struk-line">Terima Kasih!</div>
+            `;
+            document.getElementById('struk').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
